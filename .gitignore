@@ -1,0 +1,8 @@
+.DS_Store
+dist/
+build/
+__pycache__/
+*.dmg
+*.zip
+*.p12
+*.p8
