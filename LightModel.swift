@@ -17,7 +17,7 @@ final class LightModel: ObservableObject {
     static let cancelledMessage = "Setup cancelled. Click to try again."
     static let disconnectedMessage = "Control unavailable. Click to reconnect."
 
-    let preview: Bool
+    let renderingSnapshot: Bool
     private let detectDisplay: () throws -> Bool
     private let worker = DispatchQueue(label: "org.lidswitch.app.control", qos: .userInitiated)
     private var refreshTimer: Timer?
@@ -26,8 +26,8 @@ final class LightModel: ObservableObject {
     init(detectDisplay: @escaping () throws -> Bool = DisplaySupport.currentMacHasIlluminatedLid) {
         self.detectDisplay = detectDisplay
         let args = ProcessInfo.processInfo.arguments
-        preview = args.contains("--preview") && args.contains("--render")
-        if preview {
+        renderingSnapshot = args.contains("--snapshot-state") && args.contains("--render")
+        if renderingSnapshot {
             busy = false
             supported = !args.contains("unsupported")
             connected = supported && !args.contains("setup") && !args.contains("cancelled")
@@ -61,14 +61,14 @@ final class LightModel: ObservableObject {
     }
 
     func displayMayHaveChanged() {
-        guard !preview, !busy else { return }
+        guard !renderingSnapshot, !busy else { return }
         if supported { refresh() }
         else { checkDisplay() }
     }
 
     func startRefreshing() {
         refreshTimer?.invalidate()
-        guard !preview else { return }
+        guard !renderingSnapshot else { return }
         let interval: TimeInterval = NSApp.isActive ? 5 : 20
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
@@ -79,7 +79,7 @@ final class LightModel: ObservableObject {
     }
 
     func refresh() {
-        guard supported, !preview, !busy, !refreshInFlight else { return }
+        guard supported, !renderingSnapshot, !busy, !refreshInFlight else { return }
         guard ControlService.helperInstalled else {
             if connected {
                 connected = false
@@ -100,7 +100,7 @@ final class LightModel: ObservableObject {
     }
 
     func toggle() {
-        guard !preview, supported, !busy else { return }
+        guard !renderingSnapshot, supported, !busy else { return }
         if connected && enabled == nil {
             showingChoice = true
             return
@@ -118,7 +118,7 @@ final class LightModel: ObservableObject {
     }
 
     func choose(_ on: Bool) {
-        guard !preview, supported, !busy else { return }
+        guard !renderingSnapshot, supported, !busy else { return }
         showingChoice = false
         changeLight { try ControlService.request(on ? "on" : "off") }
     }
@@ -161,7 +161,7 @@ final class LightModel: ObservableObject {
     }
 
     func removeHelper() {
-        guard !preview, !busy else { return }
+        guard !renderingSnapshot, !busy else { return }
         busy = true
         showingInfo = false
         worker.async { [weak self] in

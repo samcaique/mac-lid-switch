@@ -2,13 +2,13 @@
 
 Use an Apple silicon Mac with the Command Line Tools for Xcode. The build compiles Swift sources locally and draws the icons from the artwork in `icon-work/`.
 
-## Local package
+## Package the app
 
 ```sh
-zsh package.sh preview
+zsh package.sh adhoc
 ```
 
-The local DMG and ZIP appear in `dist/preview/`. Both contain an ad hoc signed app. These packages are for local testing.
+The DMG, app ZIP, source ZIP and checksums appear in `dist/adhoc/`. The app and helper use ad hoc signatures. Document this signing status in the release notes.
 
 ## Checks
 
@@ -17,7 +17,7 @@ Run these from a logged-in macOS desktop session. The first two checks use tempo
 ```sh
 python3 HelperIntegrationChecks.py
 python3 InstallerChecks.py
-python3 PackageChecks.py dist/preview/Lid-Switch-local.dmg
+python3 PackageChecks.py dist/adhoc/Lid-Switch.dmg
 ```
 
 For a hardware check, start with a clean installation on a compatible Mac. Cancel setup once, then retry. Verify the physical logo and both icons after switching each way, after quitting and reopening, and after restarting macOS. Remove the helper from the app menu and check that its launch daemon and files are gone.
@@ -31,7 +31,6 @@ Install Xcode and a Developer ID Application certificate with its private key in
 | `LIDSWITCH_SIGN_IDENTITY` | Developer ID Application identity or its certificate fingerprint |
 | `LIDSWITCH_TEAM_ID` | Ten-character team ID on the certificate |
 | `LIDSWITCH_NOTARY_PROFILE` | Name of the saved notarytool Keychain profile |
-| `GITHUB_REPOSITORY` (optional) | GitHub repository in owner/repository format, used to generate direct download links |
 | `LIDSWITCH_XCODE_DIR` (optional) | Developer directory for an Xcode installation outside /Applications/Xcode.app |
 
 ```sh
@@ -43,6 +42,4 @@ The script signs the helper and app, verifies their signing team, submits the ap
 
 ## GitHub release
 
-Tag the version in `build.sh`. Create a draft GitHub release, use the [release description](docs/release-notes.md) and attach `Lid-Switch.dmg`, `Lid-Switch.zip` and `SHA256SUMS` from `dist/release/`. GitHub supplies the source archives for the tag.
-
-Once the release is public, use the download links from `dist/release/README.for-GitHub.md` in the repository README. That file is generated when `GITHUB_REPOSITORY` is set. Download the DMG from the live release and check the drag-to-Applications flow with Gatekeeper enabled.
+Create a GitHub release for the version in `build.sh` and tag the matching source commit. Attach `Lid-Switch.dmg`, `Lid-Switch.zip`, `Lid-Switch-source.zip` and `SHA256SUMS` from the same build. Use the [release notes](docs/release-notes.md) and check that their signing information matches the files. Download the published files and verify their checksums.

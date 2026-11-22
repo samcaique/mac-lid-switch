@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix="lid-switch-test-", dir="/private/tmp") 
     images.mkdir(exist_ok=True, parents=True)
     for state in ("on", "off"):
         target = images / (state + ".png")
-        run(exe, "--preview", state, "--render", target)
+        run(exe, "--snapshot-state", state, "--render", target)
         assert target.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     assert not filecmp.cmp(images / "on.png", images / "off.png", shallow=False)
     with subprocess.Popen([exe], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) as app:

@@ -251,7 +251,7 @@ struct LidSwitchApp {
     @MainActor static func main() {
         let app = NSApplication.shared
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("--preview"), let index = arguments.firstIndex(of: "--render"), arguments.indices.contains(index + 1) {
+        if arguments.contains("--snapshot-state"), let index = arguments.firstIndex(of: "--render"), arguments.indices.contains(index + 1) {
             let renderer = ImageRenderer(content: LogoView(model: LightModel()))
             renderer.scale = 2
             if let cgImage = renderer.cgImage {

@@ -6,7 +6,11 @@ Lid Switch turns the illuminated Apple logo on your MacBook Pro on or off with a
 
 ## Install
 
-The first signed download is pending. [Install from source](#build-from-source) to use Lid Switch now.
+[Download Lid Switch for Mac](https://github.com/samcaique/mac-lid-switch/releases/latest/download/Lid-Switch.dmg) · [ZIP](https://github.com/samcaique/mac-lid-switch/releases/latest/download/Lid-Switch.zip)
+
+Open the DMG, drag **Lid Switch** into **Applications**, then open the app. For the ZIP, unzip the file and move the app to Applications.
+
+Version 1.2 uses an ad hoc signature and has not been notarized by Apple. If macOS blocks the download, [build the app on your Mac](#build-from-source).
 
 ## Which Macs work?
 
@@ -26,10 +30,10 @@ Open the app window and choose **Lid Switch → Remove Background Control…**. 
 
 ## Build from source
 
-Install Apple’s Command Line Tools for Xcode. Run the following command from the source directory.
+With Apple’s Command Line Tools for Xcode installed, run this command in Terminal from a folder where you want to keep the source.
 
 ```sh
-zsh build.sh --install
+git clone --depth 1 --branch v1.2.0 https://github.com/samcaique/mac-lid-switch.git && zsh mac-lid-switch/build.sh --install
 ```
 
 Open **Lid Switch** in your home folder’s **Applications** directory. The command prints the installed path. The source includes the app, helper, installer and icon artwork. [Release and test instructions](RELEASING.md) · [MIT license](LICENSE)

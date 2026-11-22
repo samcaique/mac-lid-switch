@@ -2,27 +2,23 @@
 set -eu
 setopt PIPE_FAIL
 cd "${0:A:h}"
-mode="${1:-preview}"
+mode="${1:-adhoc}"
 case "$mode" in
-    preview) prefix=Lid-Switch-local ;;
+    adhoc) ;;
     release)
         : "${LIDSWITCH_SIGN_IDENTITY:?Developer ID Application signing identity required}"
         : "${LIDSWITCH_TEAM_ID:?Apple Developer Team ID required}"
         : "${LIDSWITCH_NOTARY_PROFILE:?Keychain profile for notarytool required}"
-        [[ "$LIDSWITCH_SIGN_IDENTITY" != "-" ]] || { print -u2 "An ad hoc identity cannot sign a public release."; exit 1; }
-        if [[ -n "${GITHUB_REPOSITORY:-}" && ! "$GITHUB_REPOSITORY" =~ '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' ]]; then
-            print -u2 'GITHUB_REPOSITORY must be in owner/repository format.'
-            exit 2
-        fi
-        prefix=Lid-Switch ;;
-    *) print -u2 'Usage: zsh package.sh [preview|release] [output-directory]'; exit 2 ;;
+        [[ "$LIDSWITCH_SIGN_IDENTITY" != "-" ]] || { print -u2 "A notarized build requires a Developer ID Application identity."; exit 1; }
+        ;;
+    *) print -u2 'Usage: zsh package.sh [adhoc|release] [output-directory]'; exit 2 ;;
 esac
 destination="${2:-$PWD/dist/$mode}"
 destination="${destination:a}"
 work=$(/usr/bin/mktemp -d "${TMPDIR:-/private/tmp}/lid-switch.XXXXXXXX")
 trap '/bin/rm -rf "$work"' EXIT
 export LIDSWITCH_BUILD_DIR="$work/build"
-if [[ "$mode" == preview ]]; then
+if [[ "$mode" == adhoc ]]; then
     unset LIDSWITCH_SIGN_IDENTITY LIDSWITCH_TEAM_ID
 fi
 /bin/zsh build.sh
@@ -46,31 +42,28 @@ fi
 /usr/bin/ditto "$app" "$work/disk/Lid Switch.app"
 /bin/ln -s /Applications "$work/disk/Applications"
 /usr/bin/touch "$work/disk/.lid-switch-install-media"
-/usr/bin/hdiutil create -quiet -fs HFS+ -format UDZO -volname "Install Lid Switch" -srcfolder "$work/disk" "$out/$prefix.dmg"
+/usr/bin/hdiutil create -quiet -fs HFS+ -format UDZO -volname "Install Lid Switch" -srcfolder "$work/disk" "$out/Lid-Switch.dmg"
 if [[ "$mode" == release ]]; then
-    /usr/bin/codesign --force --sign "$LIDSWITCH_SIGN_IDENTITY" --timestamp "$out/$prefix.dmg"
-    "$notary" submit "$out/$prefix.dmg" --keychain-profile "$LIDSWITCH_NOTARY_PROFILE" --wait
-    "$stapler" staple "$out/$prefix.dmg"
-    "$stapler" validate "$out/$prefix.dmg"
-    /usr/sbin/spctl --assess --type open --context context:primary-signature "$out/$prefix.dmg"
+    /usr/bin/codesign --force --sign "$LIDSWITCH_SIGN_IDENTITY" --timestamp "$out/Lid-Switch.dmg"
+    "$notary" submit "$out/Lid-Switch.dmg" --keychain-profile "$LIDSWITCH_NOTARY_PROFILE" --wait
+    "$stapler" staple "$out/Lid-Switch.dmg"
+    "$stapler" validate "$out/Lid-Switch.dmg"
+    /usr/sbin/spctl --assess --type open --context context:primary-signature "$out/Lid-Switch.dmg"
 fi
-/usr/bin/hdiutil verify "$out/$prefix.dmg"
-/usr/bin/ditto -c -k --keepParent "$app" "$out/$prefix.zip"
-(cd "$out" && /usr/bin/shasum -a 256 "$prefix.dmg" "$prefix.zip" > SHA256SUMS)
-if [[ "$mode" == release && -n "${GITHUB_REPOSITORY:-}" ]]; then
-    download="https://github.com/$GITHUB_REPOSITORY/releases/latest/download/Lid-Switch"
-    /usr/bin/awk -v url="$download" '
-        /^The first signed download is pending[.]/ {
-            print "[Download for Mac](" url ".dmg) · [ZIP](" url ".zip)"
-            print ""
-            print "Open the disk image and drag **Lid Switch** into **Applications**. For the ZIP, unzip it and move the app to Applications. Open Lid Switch to set up the light."
-            replaced++
-            next
-        }
-        { print }
-        END { if (replaced != 1) exit 1 }
-    ' README.md > "$out/README.for-GitHub.md"
-fi
+/usr/bin/hdiutil verify "$out/Lid-Switch.dmg"
+/usr/bin/ditto -c -k --keepParent "$app" "$out/Lid-Switch.zip"
+# Package only the files used to build, test, or document the app.
+source_dir="$work/mac-lid-switch"
+mkdir -p "$source_dir/docs/images" "$source_dir/icon-work"
+source_files=(.gitignore LICENSE README.md RELEASING.md build.sh package.sh Installer.sh
+    ControlService.swift DisplaySupport.swift Helper.swift LightModel.swift LidSwitch.swift StatusIcons.swift
+    HelperIntegrationChecks.py InstallerChecks.py InterfaceChecks.swift PackageChecks.py
+    docs/release-notes.md docs/images/on-off.png icon-work/make_icon.swift)
+for file in "${source_files[@]}"; do
+    /bin/cp "$file" "$source_dir/$file"
+done
+(cd "$work" && /usr/bin/zip -X -qr "$out/Lid-Switch-source.zip" mac-lid-switch)
+(cd "$out" && /usr/bin/shasum -a 256 Lid-Switch.dmg Lid-Switch.zip Lid-Switch-source.zip > SHA256SUMS)
 mkdir -p "$destination"
 /usr/bin/ditto "$out" "$destination"
 print "Packages: $destination"
